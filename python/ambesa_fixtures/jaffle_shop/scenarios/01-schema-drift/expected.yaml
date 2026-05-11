@@ -1,0 +1,48 @@
+# Scenario 01 — schema drift
+#
+# Golden-outcome contract. Pydantic-validated on load by ambesa-bench's
+# eval grader. Fields without defaults are required; everything else
+# falls back to the schema's default.
+
+# Provenance. Canonical fixtures are synthetic breaks authored on top of
+# jaffle_shop; they count toward the public benchmark and form the
+# deterministic core every release tests against.
+provenance:
+  type: canonical_fixture
+  reproduction_method: jaffle_shop variant — manually authored seed-column rename
+  fix_byte_equivalence_target: exact
+
+expected_failure_class: schema_drift
+min_confidence: 0.7
+
+# Tool usage shape — loose, not pinned to exact tool names so future tool
+# refactors don't break this contract.
+min_evidence_calls: 2
+at_least_one_of: [inspect_seed, read_manifest_node, read_file]
+forbidden_tool_calls: []
+
+# Iteration / cost ceilings. The recorded live run hit 4 iterations at
+# $0.0216 — these caps catch drift toward chattier prompts.
+max_iterations: 8
+max_cost_usd: 0.10
+
+# Diff shape.
+expected_files_touched:
+  - models/staging/stg_customers.sql
+forbidden_files_touched:
+  # Configuration / policy — humans own these.
+  - dbt_project.yml
+  - profiles.yml
+  - models/sources.yml
+  # Source data — never modify upstream-owned files. The bench's
+  # remediation rule is to filter / cast / coalesce at the model layer
+  # instead; this contract enforces it structurally.
+  - seeds/raw_customers.csv
+  - seeds/raw_orders.csv
+  - seeds/raw_payments.csv
+  - seeds/schema.yml
+fix_must_apply_cleanly: true
+
+# Optional, scenario-specific text assertions.
+must_mention_columns: [id, customer_id]
+must_mention_models: [stg_customers]

@@ -1,0 +1,70 @@
+# ───────────────────────────────────────────────
+# Secrets — never commit
+# ───────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+.secrets/
+
+# ───────────────────────────────────────────────
+# Python
+# ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.eggs/
+*.egg-info/
+*.egg
+build/
+dist/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+pip-wheel-metadata/
+.uv/
+
+# ───────────────────────────────────────────────
+# dbt
+# ───────────────────────────────────────────────
+target/
+dbt_packages/
+logs/
+.user.yml
+
+# ───────────────────────────────────────────────
+# OS / IDE
+# ───────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.swp
+*.swo
+.history/
+
+# ───────────────────────────────────────────────
+# Logs / temp
+# ───────────────────────────────────────────────
+*.log
+.cache/
+tmp/
+temp/

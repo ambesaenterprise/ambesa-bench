@@ -1,0 +1,52 @@
+# Scenario 02 — type mismatch
+#
+# Golden-outcome contract. Pydantic-validated on load.
+
+# Provenance — synthetic break, counts toward public benchmark.
+provenance:
+  type: canonical_fixture
+  reproduction_method: jaffle_shop variant — manually authored seed-column type change
+  fix_byte_equivalence_target: exact
+
+expected_failure_class: type_mismatch
+min_confidence: 0.7
+
+# Tool usage shape — agent must look at the seed (which is what changed)
+# and at the staging SQL (where the cast/division blows up).
+min_evidence_calls: 2
+at_least_one_of: [inspect_seed, read_manifest_node, read_file]
+forbidden_tool_calls: []
+
+# Iteration / cost ceilings. Loose enough to allow a bit more exploration
+# than scenario 01 since this break has more reasonable hypotheses.
+max_iterations: 8
+max_cost_usd: 0.10
+
+# Diff shape. The fix must touch stg_payments.sql; must not touch the
+# project / sources / profile config.
+expected_files_touched:
+  - models/staging/stg_payments.sql
+forbidden_files_touched:
+  # Configuration / policy — humans own these.
+  - dbt_project.yml
+  - profiles.yml
+  - models/sources.yml
+  # Source data — never modify upstream-owned files. The bench's
+  # remediation rule is to filter / cast / coalesce at the model layer
+  # instead.
+  - seeds/raw_customers.csv
+  - seeds/raw_orders.csv
+  - seeds/raw_payments.csv
+  - seeds/schema.yml
+fix_must_apply_cleanly: true
+
+# Optional, scenario-specific text assertions on diagnosis.
+#
+# Only column name is pinned. The cause of this scenario is upstream of
+# the failing model (raw_payments seed changed type), so the diagnosis
+# text legitimately emphasizes raw_payments rather than stg_payments.
+# The fix still touches stg_payments — that's the structural pin in
+# `expected_files_touched` above. Don't pin which model name the
+# diagnosis prose mentions; that's brittle and rewards verbosity.
+must_mention_columns: [amount]
+must_mention_models: []

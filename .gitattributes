@@ -1,0 +1,26 @@
+# Default: auto-detect text and normalize line endings
+* text=auto eol=lf
+
+# Explicitly text
+*.md       text
+*.txt      text
+*.json     text
+*.yaml     text
+*.yml      text
+*.toml     text
+*.py       text
+*.sql      text
+*.sh       text eol=lf
+
+# Explicitly binary
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.svg      text
+*.pdf      binary
+
+# Linguist hints — exclude vendored fixtures from language stats
+python/ambesa_fixtures/**     linguist-vendored
+uv.lock                       linguist-generated

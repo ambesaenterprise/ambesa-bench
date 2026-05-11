@@ -1,0 +1,11 @@
+--- a/models/staging/stg_customers.sql
++++ b/models/staging/stg_customers.sql
+@@ -11,7 +11,7 @@ with source as (
+ renamed as (
+
+     select
+-        id as customer_id,
++        customer_id,
+         first_name,
+         last_name
+

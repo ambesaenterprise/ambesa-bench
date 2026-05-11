@@ -1,0 +1,12 @@
+# Local DuckDB profile for jaffle_shop fixture runs.
+# Pointed at a per-run temp .duckdb file by setup.sh; not committed in any
+# real dbt-on-warehouse setup.
+
+jaffle_shop:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('AMBESA_FIXTURE_DUCKDB_PATH', '/tmp/ambesa-fixture.duckdb') }}"
+      schema: main
+      threads: 1

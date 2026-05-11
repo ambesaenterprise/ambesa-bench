@@ -1,0 +1,55 @@
+# Scenario 03 — null violation (failure surfaces at dbt TEST phase)
+#
+# Golden-outcome contract. Pydantic-validated on load.
+#
+# This is the first scenario to exercise the dbt TEST surface (vs.
+# scenarios 01 and 02 which fail at MODEL RUN). The agent loop and
+# harness handle this without modification.
+
+# Provenance — synthetic break, counts toward public benchmark.
+provenance:
+  type: canonical_fixture
+  reproduction_method: jaffle_shop variant — manually authored seed NULL injection
+  fix_byte_equivalence_target: exact
+
+expected_failure_class: null_violation
+min_confidence: 0.7
+
+# Tool usage shape — agent must inspect both the failing test (manifest
+# node) AND the source seed to understand the NULLs aren't model-side.
+min_evidence_calls: 2
+at_least_one_of: [inspect_seed, read_manifest_node, read_file]
+forbidden_tool_calls: []
+
+# Iteration / cost ceilings. Test-surface failures may need one more
+# iteration than run-surface (the agent has to chase the test → its
+# tested model → the source). 8 still bounds it tightly.
+max_iterations: 8
+max_cost_usd: 0.10
+
+# Diff shape. Fix MUST be at the model layer (filter NULLs in the
+# staging SQL); MUST NOT modify the seed CSV. The "make the test pass by
+# filling in missing IDs" anti-pattern is exactly what the
+# `forbidden_files_touched` pin below catches.
+expected_files_touched:
+  - models/staging/stg_orders.sql
+forbidden_files_touched:
+  # Configuration / policy
+  - dbt_project.yml
+  - profiles.yml
+  - models/sources.yml
+  - models/staging/schema.yml
+  # Source data — the canary that catches the "edit the seed to make
+  # the test pass" anti-pattern.
+  - seeds/raw_customers.csv
+  - seeds/raw_orders.csv
+  - seeds/raw_payments.csv
+  - seeds/schema.yml
+fix_must_apply_cleanly: true
+
+# Optional, scenario-specific text assertions on diagnosis.
+# The cause is upstream (NULL ids in the seed) — diagnosis legitimately
+# emphasizes the source. Per scenario 02's lesson, don't pin the failing
+# test/model name. Only pin the column the contract is about.
+must_mention_columns: [id]
+must_mention_models: []

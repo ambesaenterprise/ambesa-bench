@@ -1,0 +1,12 @@
+version: 2
+
+# Force amount as VARCHAR so the seed loads cleanly. The breakage shows up
+# at MODEL runtime when stg_payments tries `amount / 100` against a string.
+# This is what tests whether the agent understands the SEMANTIC change
+# (values went from int cents to dollar-formatted strings) vs. just
+# silencing the DuckDB error with a blind cast.
+seeds:
+  - name: raw_payments
+    config:
+      column_types:
+        amount: varchar

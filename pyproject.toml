@@ -1,0 +1,116 @@
+# Ambesa Bench — workspace root.
+# Vendor-neutral evaluation suite for agents that diagnose broken dbt pipelines.
+
+[project]
+name = "ambesa-bench-workspace"
+version = "0.0.0"
+description = "Workspace root for the ambesa-bench public benchmark."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Ambesa Enterprise Ltd." }]
+
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "python/ambesa_core",
+    "python/ambesa_bench",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8.4",
+    "mypy>=1.13.0",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "pytest-xdist>=3.6.1",
+    # Fixture tooling — runs scenarios against a local DuckDB and captures
+    # target/ artifacts. Not a runtime dep.
+    "dbt-core>=1.8.0,<2.0.0",
+    "dbt-duckdb>=1.8.0,<2.0.0",
+    # Type stubs
+    "types-PyYAML>=6.0.0",
+]
+
+# Local cross-package linking — uv resolves these from the workspace.
+[tool.uv.sources]
+ambesa-core = { workspace = true }
+ambesa-bench = { workspace = true }
+
+# ─── Ruff ─────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["python"]
+extend-exclude = ["python/ambesa_fixtures/jaffle_shop"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+    "TC",  # flake8-type-checking
+    "ANN", # flake8-annotations (type hints everywhere)
+    "ARG", # unused arguments
+    "PTH", # pathlib over os.path
+    "ERA", # eradicate (commented-out code)
+    "PL",  # pylint
+    "TRY", # tryceratops
+    "S",   # bandit (security)
+]
+ignore = [
+    "ANN401",  # allow Any when explicitly needed
+    "PLR0913", # too many arguments — pydantic models trigger this
+    "TRY003",  # long messages in exceptions are fine
+    "S101",    # assert allowed in tests
+    "TC001",   # `from __future__ import annotations` makes type-only stdlib imports free
+    "TC002",   # same reasoning as TC001 for third-party imports
+    "TC003",   # same reasoning as TC001 for first-party imports
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S", "ANN", "PLR2004"]
+"**/conftest.py" = ["S", "ANN"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ambesa_core", "ambesa_bench"]
+
+# ─── Mypy ─────────────────────────────────────────
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_decorators = true
+plugins = ["pydantic.mypy"]
+exclude = ["python/ambesa_fixtures/jaffle_shop", ".venv", "build", "dist"]
+
+[[tool.mypy.overrides]]
+module = ["anthropic.*"]
+ignore_missing_imports = true
+
+# ─── Pytest ───────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["python"]
+python_files = ["test_*.py", "*_test.py"]
+asyncio_mode = "auto"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+]
+markers = [
+    "unit: fast, isolated unit tests",
+    "integration: integration tests (may hit the network or DB)",
+    "scenario: end-to-end fixture scenarios (slow, run separately)",
+]

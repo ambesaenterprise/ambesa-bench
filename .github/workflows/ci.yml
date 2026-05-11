@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: python (lint + type + test + bench)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --frozen --all-packages
+      - name: ruff (lint)
+        run: uv run ruff check python/
+      - name: ruff (format)
+        run: uv run ruff format --check python/
+      - name: mypy (strict)
+        run: uv run mypy --strict python/ambesa_core/src python/ambesa_bench/src
+      - name: pytest
+        run: uv run pytest python/ -q
+      - name: ambesa-bench (recording mode — public baseline 2/4)
+        run: uv run ambesa-bench --mode recording
+      - name: ambesa-bench (replay mode)
+        run: uv run ambesa-bench --mode replay
+
+  gitleaks:
+    name: gitleaks (secret scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          GITLEAKS_VERSION=8.24.0
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xzf - -C /usr/local/bin gitleaks
+          gitleaks version
+      - name: Run gitleaks
+        run: gitleaks detect --source . --redact --no-banner --verbose --exit-code 1
+

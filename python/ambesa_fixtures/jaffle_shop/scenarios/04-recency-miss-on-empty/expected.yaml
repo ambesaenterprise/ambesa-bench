@@ -1,0 +1,90 @@
+# Scenario 04 — recency miss on empty source table
+#
+# Golden-outcome contract. Pydantic-validated on load.
+#
+# This is the FIRST `public_incident_replay` scenario. It reproduces the
+# post-fix shape of dbt-labs/dbt-utils PR #1065 (commit e2add69, merged
+# 2026-01-09): a recency test that correctly fails when its source has
+# no rows, where the pre-fix `dbt_utils.recency()` macro silently passed.
+#
+# The fix the agent is graded against is a CONSUMER-SIDE workaround —
+# what a senior DE would write at 3am to unblock the pipeline while
+# waiting for the upstream load to be repaired. NOT a fork of dbt-utils.
+# The agent operates on the user's repo, never on upstream packages.
+
+# Provenance — the public/private discriminator plus the externally-
+# verifiable source artifact.
+provenance:
+  type: public_incident_replay
+  source_pr: https://github.com/dbt-labs/dbt-utils/pull/1065
+  source_commit: e2add69
+  reproduction_method: dbt-duckdb fixture with an empty raw_orders seed and a custom recency-style test mirroring the post-fix dbt-utils macro shape (`OR most_recent IS NULL`)
+  fix_byte_equivalence_target: consumer_workaround
+  notes: |
+    The custom recency test in tests/recency_raw_orders.sql is hand-rolled
+    rather than using the dbt-utils package directly, to avoid a runtime
+    `dbt deps` step in the fixture (the upstream fix is on dbt-utils main
+    but not yet in a tagged release as of 2026-05-10). The SQL shape is
+    byte-equivalent to the post-fix dbt_utils.recency() macro modulo
+    parameterization. Provenance link points to the canonical PR.
+
+# `logic` rather than `null_violation` — the agent correctly identifies
+# this as a logical/operational issue (the upstream pipeline didn't load
+# data) rather than a NULL-constraint violation. The NULL is the test's
+# guard catching the issue, not the source of failure. `null_violation`
+# would mis-frame the buyer scenario; `logic` is honest. (When the v1
+# class enum expands, `freshness_failure` or `missing_source` may become
+# the more precise label and this contract updates.)
+expected_failure_class: logic
+min_confidence: 0.6
+
+# Tool usage shape — agent must inspect the failing test (manifest node)
+# AND the source seed (to discover it's empty). Lineage-required by design.
+min_evidence_calls: 2
+at_least_one_of: [inspect_seed, read_manifest_node, read_file]
+forbidden_tool_calls: []
+
+# Iteration / cost ceilings. This scenario is one step deeper than 03
+# (test → source rather than test → model) so 9 iterations is the cap.
+max_iterations: 9
+max_cost_usd: 0.12
+
+# Diff shape. The "fix" for an empty source table has no clean surgical
+# answer at the model layer — the actual fix is "repair upstream." So
+# this scenario does NOT pin expected_files_touched. The agent may
+# propose:
+#   - a defensive filter / coalesce in stg_orders.sql
+#   - a count-based companion test in tests/
+#   - a severity:warn config on the recency test
+# Any of those is a defensible consumer-side workaround. The structural
+# pin is the FORBIDDEN set: do not modify the source seed, do not edit
+# package config, do not falsify data.
+# Diagnosis-only scenario — the agent correctly returns proposed_fix=None
+# for an empty-source case where there is no honest model-layer fix
+# (the actual remedy is "investigate upstream"). The contract therefore
+# does NOT require a clean-applying diff. The agent's value here is in
+# the diagnosis quality, not in code emission.
+fix_must_apply_cleanly: false
+expected_files_touched: []
+forbidden_files_touched:
+  # Configuration / policy — humans own these.
+  - dbt_project.yml
+  - profiles.yml
+  - models/sources.yml
+  - models/staging/schema.yml
+  # Source data — the canary that catches "agent edited the seed to make
+  # the test pass" anti-pattern. Same pin as scenarios 01-03.
+  - seeds/raw_customers.csv
+  - seeds/raw_orders.csv
+  - seeds/raw_payments.csv
+  - seeds/schema.yml
+  # The test itself is upstream-package-equivalent; agent must not
+  # rewrite the test to falsely pass on empty data.
+  - tests/recency_raw_orders.sql
+
+# Optional, scenario-specific text assertions. The diagnosis must
+# mention the empty source table — that's the load-bearing insight.
+# Don't pin the failing test/model name; per scenario 02's lesson,
+# upstream causes legitimately shift the diagnosis emphasis.
+must_mention_columns: []
+must_mention_models: []
